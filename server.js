@@ -27,7 +27,7 @@ router.use(function(req, res, next) {
     });
     
 var messages = [];
-var sockets = [];
+var sockets = [];   
 
 router.get('/jsonpTest', function(req, res){
   res.jsonp([{a:1},{a:2}]);
