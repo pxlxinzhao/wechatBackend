@@ -42,7 +42,12 @@ router.get('/messages', function(req, res){
     throw new Error('missing parameters senderId or receiverId');
   }
   else{
-    chatMessages.find({senderId: senderId, receiverId: receiverId},
+    chatMessages.find({
+      $or: [
+          {senderId: senderId, receiverId: receiverId},
+          {senderId: receiverId, receiverId: senderId}
+        ]
+    },
     function(err, docs){
       if (err) throw err;
       console.log('docs', docs);
