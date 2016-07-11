@@ -12,13 +12,14 @@ var io = socketio.listen(server);
 var monk = require('monk');
 var db = monk('localhost:27017/wechat');
 var chatMessages =db.get('messages');
+var users = db.get('users');
 
 // io.set('origins', '*');
 // io.set('transports', [ 'websocket', 'polling']);
 
 router.use(express.static(path.resolve(__dirname, 'client')));
 router.use(function(req, res, next) {
-        console.log ("inside middleware");
+        // console.log ("inside middleware");
         res.header("Access-Control-Allow-Origin", "*");
         res.header("Access-Control-Allow-Headers", "X-Requested-With");
         res.header("Access-Control-Allow-Headers", "Content-Type");
@@ -31,6 +32,74 @@ var sockets = [];
 
 router.get('/jsonpTest', function(req, res){
   res.jsonp([{a:1},{a:2}]);
+});
+
+router.get('/getPhotoUrl', function(req, res){
+  var username = req.query.username;
+  
+  users.find({
+    username: username
+  }
+  , function(err, docs){
+    if(err) throw err;
+    res.jsonp(docs);
+  })
+});
+
+router.get('/getChaterIds', function(req, res){
+  console.log("start validating user");
+  
+  var username = req.query.username;
+  
+  chatMessages.distinct('senderId', 
+  { 
+    $or: [
+          {senderId: 'Patrick Pu'}, 
+          {senderId: 'Mandi Gross'}
+         ] 
+  }
+  , function(err, docs){
+    if(err) throw err;
+    res.jsonp(docs);
+  })
+});
+
+router.get('/validateUser', function(req, res){
+  console.log("start validating user");
+  
+  var username = req.query.username;
+  var password = req.query.password;
+  
+  var user = {
+    username: username,
+    password: password
+  }
+  
+  console.log(user);
+  users.find(user, function(err, docs){
+    if(err) throw err;
+    console.log(docs);
+    res.jsonp(docs);
+  })
+});
+
+router.get('/register', function(req, res){
+  console.log("start registering");
+  
+  var username = req.query.username;
+  var email = req.query.email;
+  var password = req.query.password;
+  
+  var user = {
+    username: username,
+    password: password,
+    email: email
+  }
+  users.insert(user, function(err){
+    if(err) throw err;
+    console.log("registered new user ", user);
+    res.jsonp("User created successfully");
+  })
 });
 
 router.get('/messages', function(req, res){
