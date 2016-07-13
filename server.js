@@ -4,6 +4,7 @@ var path = require('path');
 var async = require('async');
 var socketio = require('socket.io');
 var express = require('express');
+var _ = require('underscore');
 
 var router = express();
 var server = http.createServer(router);
@@ -46,27 +47,39 @@ router.get('/getPhotoUrl', function(req, res){
   })
 });
 
-router.get('/getChaterIds', function(req, res){
-  console.log("start validating user");
-  
+router.get('/getChatters', function(req, res){
+  // console.log("start validating user");
   var username = req.query.username;
   
-  chatMessages.distinct('senderId', 
-  { 
-    $or: [
-          {senderId: 'Patrick Pu'}, 
-          {senderId: 'Mandi Gross'}
-         ] 
-  }
-  , function(err, docs){
-    if(err) throw err;
-    res.jsonp(docs);
+  async.waterfall([
+      function(callback){
+          chatMessages.distinct(
+            'senderId', 
+            {$or: 
+              [
+                {senderId: username},
+                {receiverId: username}
+              ]
+            },
+            callback
+          )
+      },
+      function(chatterIds, callback){
+        chatterIds = _.without(chatterIds, username);
+
+        users.find(
+          {'username': {$in: chatterIds}}, 
+          callback
+        );
+      }
+    ], function(err, result){
+      if(err) throw err;
+      res.jsonp(result);
   })
 });
 
 router.get('/validateUser', function(req, res){
-  console.log("start validating user");
-  
+  // console.log("start validating user");
   var username = req.query.username;
   var password = req.query.password;
   
@@ -84,8 +97,7 @@ router.get('/validateUser', function(req, res){
 });
 
 router.get('/register', function(req, res){
-  console.log("start registering");
-  
+  // console.log("start registering");
   var username = req.query.username;
   var email = req.query.email;
   var password = req.query.password;
@@ -128,7 +140,7 @@ router.get('/messages', function(req, res){
 });
 
 io.on('connection', function (socket) {
-  console.log('a client has been conected');
+  // console.log('a client has been conected');
   socket.on('message', function(msg){
     chatMessages.insert(msg, function(err){
       if (err) throw err;
