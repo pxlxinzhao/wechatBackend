@@ -29,7 +29,8 @@ router.use(function(req, res, next) {
     });
     
 var messages = [];
-var sockets = [];   
+//userId as key, and socket as value
+var sockets = {};   
 
 router.get('/jsonpTest', function(req, res){
   res.jsonp([{a:1},{a:2}]);
@@ -117,7 +118,7 @@ router.get('/register', function(req, res){
 router.get('/messages', function(req, res){
   var senderId = req.query.senderId;
   var receiverId = req.query.receiverId;
-  console.log('In messages webservice', senderId, receiverId);
+  // console.log('In messages webservice', senderId, receiverId);
   
   if (!senderId || !receiverId) {
     throw new Error('missing parameters senderId or receiverId');
@@ -128,11 +129,12 @@ router.get('/messages', function(req, res){
           {senderId: senderId, receiverId: receiverId},
           {senderId: receiverId, receiverId: senderId}
         ]
+    }, {
+      limit: 6,
+      sort: {time: -1}
     },
     function(err, docs){
       if (err) throw err;
-      console.log('docs', docs);
-      console.log('callback function name: ' + req.query.callback);
       res.type('application/javascript');
       res.jsonp(docs);
     })
@@ -141,11 +143,34 @@ router.get('/messages', function(req, res){
 
 io.on('connection', function (socket) {
   // console.log('a client has been conected');
-  socket.on('message', function(msg){
+  socket.on('registerSocket', function(id){
+    console.log("register " + id.username + "'s socket");
+    sockets[id.username] = socket;
+    socket.username = id.username;
+  })
+  
+  socket.on('disconnect', function () {
+    delete sockets[socket.username]
+  });
+  
+  socket.on('sendMessage', function(msg){
     chatMessages.insert(msg, function(err){
       if (err) throw err;
-      console.log('new message: ', msg);
-      socket.emit('messageSuccess', {});
+      // console.log('new message: ', msg);
+      socket.emit('messageSent', {});
+      
+      //push to receiver
+      console.log('start pushing');
+      var receiverId = msg.receiverId;
+      var receiverSocket = sockets[receiverId];
+      
+      console.log('checking receiverSocket ', Object.keys(sockets), receiverId, !!receiverSocket);
+      if (receiverSocket){
+        console.log('find receiverSocket');
+        //first time sending message not working, until the other one send back message
+        //weird
+        receiverSocket.emit('receiveMessage', {});
+      }
     })
   })
 });
