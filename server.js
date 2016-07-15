@@ -79,6 +79,17 @@ router.get('/getChatters', function(req, res){
   })
 });
 
+router.get('/countNewMessage', function(req, res) {
+  var senderId = req.query.senderId;
+  console.log('start counting for ', senderId);
+  
+  chatMessages.count({senderId: senderId, unread: true}, function(err, docs){
+     if(err) throw err;
+     console.log('count result: ', docs);
+     res.jsonp(docs)
+  })
+})
+
 router.get('/validateUser', function(req, res){
   // console.log("start validating user");
   var username = req.query.username;
@@ -169,7 +180,7 @@ io.on('connection', function (socket) {
         console.log('find receiverSocket');
         //first time sending message not working, until the other one send back message
         //weird
-        receiverSocket.emit('receiveMessage', {});
+        receiverSocket.emit('receiveMessage', msg);
       }
     })
   })
