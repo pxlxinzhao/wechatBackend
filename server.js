@@ -129,10 +129,35 @@ router.get('/register', function(req, res){
   })
 });
 
+router.get('/getRecentMsg', function(req, res) {
+  var senderId = req.query.senderId;
+  var receiverId = req.query.receiverId;
+  
+  if (!senderId || !receiverId) {
+    throw new Error('missing parameters senderId or receiverId');
+  }
+  else{
+    chatMessages.find({
+      $or: [
+          {senderId: senderId, receiverId: receiverId},
+          {senderId: receiverId, receiverId: senderId}
+        ]
+    }, {
+      limit: 1,
+      sort: {time: -1}
+    },
+    function(err, docs){
+      if (err) throw err;
+
+      res.type('application/javascript');
+      res.jsonp(docs);
+    })
+  }
+})
+
 router.get('/messages', function(req, res){
   var senderId = req.query.senderId;
   var receiverId = req.query.receiverId;
-  console.log('In messages webservice', senderId, receiverId);
   
   if (!senderId || !receiverId) {
     throw new Error('missing parameters senderId or receiverId');
@@ -152,13 +177,18 @@ router.get('/messages', function(req, res){
       
       // mark all messages as read once enter chat interface
       console.log("trying to mark messages as read");
-      chatMessages.update({senderId: senderId, 
+      chatMessages.update(
+        {
+          senderId: senderId, 
           receiverId: receiverId,
-          unread: true}, {
-            $set: {
-              unread: false
-            }
-          })
+          unread: true}, 
+        {
+          $set: {
+            unread: false
+          }
+        },{
+          multi: true
+        })
       
       res.type('application/javascript');
       res.jsonp(docs);
