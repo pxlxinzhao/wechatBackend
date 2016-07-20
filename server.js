@@ -81,9 +81,12 @@ router.get('/getChatters', function(req, res){
 
 router.get('/countNewMessage', function(req, res) {
   var senderId = req.query.senderId;
+  var receiverId = req.query.receiverId;
   console.log('start counting for ', senderId);
   
-  chatMessages.count({senderId: senderId, unread: true}, function(err, docs){
+  chatMessages.count({senderId: senderId, 
+  receiverId: receiverId,
+  unread: true}, function(err, docs){
      if(err) throw err;
      console.log('count result: ', docs);
      res.jsonp(docs)
@@ -129,7 +132,7 @@ router.get('/register', function(req, res){
 router.get('/messages', function(req, res){
   var senderId = req.query.senderId;
   var receiverId = req.query.receiverId;
-  // console.log('In messages webservice', senderId, receiverId);
+  console.log('In messages webservice', senderId, receiverId);
   
   if (!senderId || !receiverId) {
     throw new Error('missing parameters senderId or receiverId');
@@ -146,6 +149,17 @@ router.get('/messages', function(req, res){
     },
     function(err, docs){
       if (err) throw err;
+      
+      // mark all messages as read once enter chat interface
+      console.log("trying to mark messages as read");
+      chatMessages.update({senderId: senderId, 
+          receiverId: receiverId,
+          unread: true}, {
+            $set: {
+              unread: false
+            }
+          })
+      
       res.type('application/javascript');
       res.jsonp(docs);
     })
