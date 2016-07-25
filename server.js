@@ -1,3 +1,5 @@
+var mongoURI = "mongodb://heroku_npf5l3vz:82pkinrinvehbnett08u2e88f2@ds029705.mlab.com:29705/heroku_npf5l3vz";
+
 var http = require('http');
 var path = require('path');
 
@@ -11,7 +13,7 @@ var server = http.createServer(router);
 var io = socketio.listen(server);
 
 var monk = require('monk');
-var db = monk('localhost:27017/wechat');
+var db = monk(mongoURI);
 var chatMessages =db.get('messages');
 var users = db.get('users');
 
