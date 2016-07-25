@@ -51,7 +51,10 @@ router.get('/getPhotoUrl', function(req, res){
 router.get('/getChatters', function(req, res){
   // console.log("start validating user");
   var username = req.query.username;
+  var ids = [];
   
+  //get distinct ids for all past messages
+  //can be either senderId or receiverId
   async.waterfall([
       function(callback){
           chatMessages.distinct(
@@ -65,7 +68,22 @@ router.get('/getChatters', function(req, res){
             callback
           )
       },
-      function(chatterIds, callback){
+      function(senderIds, callback){
+        ids = ids.concat(senderIds);
+        chatMessages.distinct(
+            'receiverId', 
+            {$or: 
+              [
+                {senderId: username},
+                {receiverId: username}
+              ]
+            },
+            callback
+          )
+      },
+      function(receiverIds, callback){
+        var chatterIds = ids.concat(receiverIds);
+        chatterIds = _.uniq(chatterIds);
         chatterIds = _.without(chatterIds, username);
 
         users.find(
@@ -82,32 +100,33 @@ router.get('/getChatters', function(req, res){
 router.get('/countNewMessage', function(req, res) {
   var senderId = req.query.senderId;
   var receiverId = req.query.receiverId;
-  console.log('start counting for ', senderId);
+  //console.log('start counting for ', senderId);
   
   chatMessages.count({senderId: senderId, 
   receiverId: receiverId,
   unread: true}, function(err, docs){
      if(err) throw err;
-     console.log('count result: ', docs);
+     //console.log('count result: ', docs);
      res.jsonp(docs)
   })
 })
 
 router.get('/validateUser', function(req, res){
-  // console.log("start validating user");
+  console.log("logging in...");
+  
   var username = req.query.username;
   var password = req.query.password;
+  
+  console.log("username",username);
   
   var user = {
     username: username,
     password: password
   }
   
-  console.log(user);
   users.find(user, function(err, docs){
     if(err) throw err;
-    console.log(docs);
-    res.jsonp(docs);
+    buildRes(req, res, docs);
   })
 });
 
@@ -124,7 +143,7 @@ router.get('/register', function(req, res){
   }
   users.insert(user, function(err){
     if(err) throw err;
-    console.log("registered new user ", user);
+    //console.log("registered new user ", user);
     res.jsonp("User created successfully");
   })
 });
@@ -176,7 +195,7 @@ router.get('/messages', function(req, res){
       if (err) throw err;
       
       // mark all messages as read once enter chat interface
-      console.log("trying to mark messages as read");
+      //console.log("trying to mark messages as read");
       chatMessages.update(
         {
           senderId: senderId, 
@@ -199,7 +218,7 @@ router.get('/messages', function(req, res){
 io.on('connection', function (socket) {
   // console.log('a client has been conected');
   socket.on('registerSocket', function(id){
-    console.log("register " + id.username + "'s socket");
+    //console.log("register " + id.username + "'s socket");
     sockets[id.username] = socket;
     socket.username = id.username;
   })
@@ -215,13 +234,13 @@ io.on('connection', function (socket) {
       socket.emit('messageSent', {});
       
       //push to receiver
-      console.log('start pushing');
+      //console.log('start pushing');
       var receiverId = msg.receiverId;
       var receiverSocket = sockets[receiverId];
       
-      console.log('checking receiverSocket ', Object.keys(sockets), receiverId, !!receiverSocket);
+      //console.log('checking receiverSocket ', Object.keys(sockets), receiverId, !!receiverSocket);
       if (receiverSocket){
-        console.log('find receiverSocket');
+        //console.log('find receiverSocket');
         //first time sending message not working, until the other one send back message
         //weird
         receiverSocket.emit('receiveMessage', msg);
@@ -234,3 +253,10 @@ server.listen(process.env.PORT || 3000, process.env.IP || "0.0.0.0", function(){
   var addr = server.address();
   console.log("Chat server listening at", addr.address + ":" + addr.port);
 });
+
+function buildRes(req, res, data){
+    console.log("param", req.query);
+    var jsonp = req.query.jsonp;
+    console.log("jsonp", jsonp);
+    jsonp ? res.jsonp(data) : res.send(data);
+}
