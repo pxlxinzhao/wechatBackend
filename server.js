@@ -22,7 +22,6 @@ var users = db.get('users');
 
 router.use(express.static(path.resolve(__dirname, 'client')));
 router.use(function(req, res, next) {
-        // console.log ("inside middleware");
         res.header("Access-Control-Allow-Origin", "*");
         res.header("Access-Control-Allow-Headers", "X-Requested-With");
         res.header("Access-Control-Allow-Headers", "Content-Type");
@@ -51,7 +50,6 @@ router.get('/getPhotoUrl', function(req, res){
 });
 
 router.get('/getChatters', function(req, res){
-  // console.log("start validating user");
   var username = req.query.username;
   var ids = [];
   
@@ -102,13 +100,11 @@ router.get('/getChatters', function(req, res){
 router.get('/countNewMessage', function(req, res) {
   var senderId = req.query.senderId;
   var receiverId = req.query.receiverId;
-  //console.log('start counting for ', senderId);
   
   chatMessages.count({senderId: senderId, 
   receiverId: receiverId,
   unread: true}, function(err, docs){
      if(err) throw err;
-     //console.log('count result: ', docs);
      res.jsonp(docs)
   })
 })
@@ -129,12 +125,10 @@ router.get('/validateUser', function(req, res){
   users.find(user, function(err, docs){
     if(err) throw err;
     res.jsonp(docs);
-    // buildRes(req, res, docs);
   })
 });
 
 router.get('/register', function(req, res){
-  // console.log("start registering");
   var username = req.query.username;
   var email = req.query.email;
   var password = req.query.password;
@@ -146,7 +140,6 @@ router.get('/register', function(req, res){
   }
   users.insert(user, function(err){
     if(err) throw err;
-    //console.log("registered new user ", user);
     res.jsonp("User created successfully");
   })
 });
@@ -198,7 +191,6 @@ router.get('/messages', function(req, res){
       if (err) throw err;
       
       // mark all messages as read once enter chat interface
-      //console.log("trying to mark messages as read");
       chatMessages.update(
         {
           senderId: senderId, 
@@ -219,9 +211,7 @@ router.get('/messages', function(req, res){
 });
 
 io.on('connection', function (socket) {
-  // console.log('a client has been conected');
   socket.on('registerSocket', function(id){
-    //console.log("register " + id.username + "'s socket");
     sockets[id.username] = socket;
     socket.username = id.username;
   })
@@ -233,19 +223,13 @@ io.on('connection', function (socket) {
   socket.on('sendMessage', function(msg){
     chatMessages.insert(msg, function(err){
       if (err) throw err;
-      // console.log('new message: ', msg);
       socket.emit('messageSent', {});
       
       //push to receiver
-      //console.log('start pushing');
       var receiverId = msg.receiverId;
       var receiverSocket = sockets[receiverId];
       
-      //console.log('checking receiverSocket ', Object.keys(sockets), receiverId, !!receiverSocket);
       if (receiverSocket){
-        //console.log('find receiverSocket');
-        //first time sending message not working, until the other one send back message
-        //weird
         receiverSocket.emit('receiveMessage', msg);
       }
     })
@@ -256,10 +240,3 @@ server.listen(process.env.PORT || 3000, process.env.IP || "0.0.0.0", function(){
   var addr = server.address();
   console.log("Chat server listening at", addr.address + ":" + addr.port);
 });
-
-// function buildRes(req, res, data){
-//     console.log("param", req.query);
-//     var jsonp = req.query.jsonp;
-//     console.log("jsonp", jsonp);
-//     jsonp ? res.jsonp(data) : res.send(data);
-// }
