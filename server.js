@@ -128,7 +128,8 @@ router.get('/validateUser', function(req, res){
   
   users.find(user, function(err, docs){
     if(err) throw err;
-    buildRes(req, res, docs);
+    res.jsonp(docs);
+    // buildRes(req, res, docs);
   })
 });
 
@@ -256,9 +257,9 @@ server.listen(process.env.PORT || 3000, process.env.IP || "0.0.0.0", function(){
   console.log("Chat server listening at", addr.address + ":" + addr.port);
 });
 
-function buildRes(req, res, data){
-    console.log("param", req.query);
-    var jsonp = req.query.jsonp;
-    console.log("jsonp", jsonp);
-    jsonp ? res.jsonp(data) : res.send(data);
-}
+// function buildRes(req, res, data){
+//     console.log("param", req.query);
+//     var jsonp = req.query.jsonp;
+//     console.log("jsonp", jsonp);
+//     jsonp ? res.jsonp(data) : res.send(data);
+// }
