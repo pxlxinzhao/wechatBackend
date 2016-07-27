@@ -173,6 +173,8 @@ router.get('/getRecentMsg', function(req, res) {
 router.get('/messages', function(req, res){
   var senderId = req.query.senderId;
   var receiverId = req.query.receiverId;
+  var page = req.query.page;
+  var fetchSize = 6;
   
   if (!senderId || !receiverId) {
     throw new Error('missing parameters senderId or receiverId');
@@ -184,7 +186,8 @@ router.get('/messages', function(req, res){
           {senderId: receiverId, receiverId: senderId}
         ]
     }, {
-      limit: 6,
+      limit: fetchSize,
+      skip: (page-1) * fetchSize,
       sort: {time: -1}
     },
     function(err, docs){
