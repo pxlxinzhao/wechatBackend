@@ -6,11 +6,13 @@ var path = require('path');
 var async = require('async');
 var socketio = require('socket.io');
 var express = require('express');
+var request = require("request");
 var _ = require('underscore');
 
 var router = express();
 var server = http.createServer(router);
 var io = socketio.listen(server);
+
 
 var monk = require('monk');
 var db = monk(mongoURI);
@@ -48,6 +50,22 @@ router.get('/getPhotoUrl', function(req, res){
     res.jsonp(docs);
   })
 });
+
+router.get('/updatePhotoUrl', function(req, res) {
+  var username = req.query.username;
+  var photoUrl = req.query.photoUrl;
+  console.log('photoUrl', photoUrl);
+  
+  users.find({
+     username: username
+  },
+  {
+    $set: {
+      photoUrl: photoUrl
+    }
+  }
+  )
+})
 
 router.get('/getChatters', function(req, res){
   var username = req.query.username;
@@ -138,10 +156,28 @@ router.get('/register', function(req, res){
     password: password,
     email: email
   }
-  users.insert(user, function(err){
+
+  async.waterfall([
+    function(callback){
+      request('https://randomuser.me/api/', callback)
+    },
+    function(response, body, callback){
+        if (!body) return;
+        var bodyObj = JSON.parse(body);
+        
+        var email = bodyObj.results[0].email;
+        var photoUrl = bodyObj.results[0].picture.medium;
+        
+        user.email = email;
+        user.photoUrl = photoUrl;
+        
+        users.insert(user, callback);
+    }
+  ],function(err){
     if(err) throw err;
     res.jsonp("User created successfully");
   })
+
 });
 
 router.get('/getRecentMsg', function(req, res) {
