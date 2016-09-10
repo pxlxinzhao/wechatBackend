@@ -262,14 +262,14 @@ io.on('connection', function (socket) {
   socket.on('sendMessage', function(msg){
     chatMessages.insert(msg, function(err){
       if (err) throw err;
-      socket.emit('messageSent', {});
+      socket.emit('messageSent', {msg});
       
       //push to receiver
       var receiverId = msg.receiverId;
       var receiverSocket = sockets[receiverId];
       
       if (receiverSocket){
-        receiverSocket.emit('receiveMessage', msg);
+        receiverSocket.emit('receiveMessage', {msg});
       }
     })
   })
