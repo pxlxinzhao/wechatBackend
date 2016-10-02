@@ -1,4 +1,5 @@
 var mongoURI = "mongodb://heroku_npf5l3vz:82pkinrinvehbnett08u2e88f2@ds029705.mlab.com:29705/heroku_npf5l3vz";
+// var mongoURI = "localhost:27017/wechat";
 
 var http = require('http');
 var path = require('path');
@@ -8,13 +9,14 @@ var socketio = require('socket.io');
 var express = require('express');
 var request = require("request");
 var _ = require('underscore');
+var loremIpsum = require('lorem-ipsum');
 
 var router = express();
 var server = http.createServer(router);
 var io = socketio.listen(server);
 
-
 var monk = require('monk');
+
 var db = monk(mongoURI);
 var chatMessages =db.get('messages');
 var users = db.get('users');
@@ -169,7 +171,8 @@ router.get('/register', function(req, res){
         var photoUrl = bodyObj.results[0].picture.medium;
         
         user.email = email;
-        user.photoUrl = photoUrl;
+        user.photoUrl = photoUrl
+        user.description = loremIpsum();
         
         users.insert(user, callback);
     }
@@ -185,7 +188,8 @@ router.get('/getRecentMsg', function(req, res) {
   var receiverId = req.query.receiverId;
   
   if (!senderId || !receiverId) {
-    throw new Error('missing parameters senderId or receiverId');
+    return;
+    // throw new Error('missing parameters senderId or receiverId');
   }
   else{
     chatMessages.find({
@@ -248,6 +252,13 @@ router.get('/messages', function(req, res){
     })
   }
 });
+
+router.get('/listUsers', function(req, res) {
+    users.find({}, function(err, docs) {
+        if (err) throw err; 
+        res.jsonp(docs);
+    })
+})
 
 io.on('connection', function (socket) {
   socket.on('registerSocket', function(id){
